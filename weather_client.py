@@ -45,38 +45,39 @@ class WeatherClient:
         return data.get("features", [])
     
     def get_forecast_discussion(self, latitude, longitude):
+    
+        # 1. Resolve coordinates to NWS office
         point = self.get_point(latitude, longitude)
 
         office = point["properties"]["cwa"]
 
+        # 2. Fetch AFD products directly by type + office
         data = self.get(
-            "/products",
-            params={
-            "type": "AFD",
-            "location": office
-            }
+        f"/products/types/AFD/locations/{office}"
         )
 
         discussions = data.get("@graph", [])
 
-        if not discussions:
-            return None
+        if not isinstance(discussions, list):
+            return []
 
-        # The API returns multiple AFD products.
-        # Pick the most recent one.
-        latest = max(
-        discussions,
-        key=lambda discussion: discussion["issuanceTime"]
-        )
+        results = []
 
-        response = self._session.get(
-            latest["@id"],
-            timeout=30
-        )
+        # 3. Fetch full product text
+        for discussion in discussions:
 
-        response.raise_for_status()
+            product_id = discussion.get("id")
 
-        return response.json()
+            if not product_id:
+                continue
+
+            product = self.get(
+            f"/products/{product_id}"
+            )
+
+            results.append(product)
+
+        return results
 
     def resolve_location(self, latitude, longitude):
         point = self.get_point(latitude, longitude)
