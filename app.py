@@ -182,15 +182,7 @@ def sync_weather():
         # Respect the requested limit
         discussions = discussions[:limit]
 
-        for discussion in discussions:
-
-            product_id = discussion.get("id")
-
-            # The list endpoint gives us metadata.
-            # We need the product endpoint to get productText.
-            product = client.get(
-                f"/products/{product_id}"
-            )
+        for product in discussions:
 
             document = {
                 "id": product.get("id"),
